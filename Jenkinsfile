@@ -1,9 +1,28 @@
 pipeline {
     agent any
+    environment {
+        IMAGE_NAME = 'hartitawirastri/praktikum-cloudcomputing-1'
+        REGISTRY_CREDENTIALS = 'docker-credentials'
+    }
     stages {
-        stage('Hello') {
+        stage('Checkout') {
             steps {
-                echo 'My Jenkins Pipeline'
+                checkout scm
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                bat "docker build -t %IMAGE_NAME%:%BUILD_NUMBER% ."
+            }
+        }
+        stage('Push Docker Image') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: REGISTRY_CREDENTIALS, usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                    bat 'docker login -u %USER% -p %PASS%'
+                    bat "docker push %IMAGE_NAME%:%BUILD_NUMBER%"
+                    bat "docker tag %IMAGE_NAME%:%BUILD_NUMBER% %IMAGE_NAME%:latest"
+                    bat "docker push %IMAGE_NAME%:latest"
+                }
             }
         }
     }
